@@ -66,6 +66,12 @@ export function providerBaseId(Id: string): string {
     // Custom providers carry a UUID v4 as their immutable ID — never
     // truncate it; a UUID is its own base identity.
     if (UUID_RE.test(Id)) return Id;
+    // Extra keys added to a custom provider are stored as `<parent-uuid>-<suffix>`.
+    // Collapse them onto the parent UUID so all keys share one base identity.
+    if (Id.length > 37 && Id[36] === "-") {
+        const Prefix = Id.slice(0, 36);
+        if (UUID_RE.test(Prefix)) return Prefix.toLowerCase();
+    }
     return (
         KNOWN_PROVIDER_IDS_DESC.find(
             (Candidate) =>

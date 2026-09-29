@@ -54,6 +54,8 @@ const PROVIDER_IDS_BY_LENGTH = Object.keys(DEFAULT_PROVIDER_MAP).sort(
     (Left, Right) => Right.length - Left.length
 );
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function BaseIdOf(ProviderId: string): string {
     for (const Id of PROVIDER_IDS_BY_LENGTH) {
         if (
@@ -63,6 +65,13 @@ function BaseIdOf(ProviderId: string): string {
         ) {
             return Id;
         }
+    }
+    // Custom provider keys are stored as `<parent-uuid>-<suffix>`; collapse them
+    // onto the parent UUID so one custom provider remains a single catalog entry
+    // and its keys show up under that provider's Active Credentials list.
+    if (ProviderId.length > 37 && ProviderId[36] === "-") {
+        const Prefix = ProviderId.slice(0, 36);
+        if (UUID_RE.test(Prefix)) return Prefix.toLowerCase();
     }
     return ProviderId;
 }
@@ -99,14 +108,19 @@ async function CatalogWithSavedProviders(): Promise<ProviderDefinition[]> {
         if (Seen.has(BaseId)) continue;
         Seen.add(BaseId);
 
+        // Display identity comes from the parent row (the provider itself),
+        // not the newest connection — otherwise adding a key renames the
+        // provider in the catalog ("atria" becomes "atria Key Key").
+        const Parent = Rows.find((R) => R.id === BaseId) ?? Connection;
+
         const Seed = DEFAULT_PROVIDER_MAP[BaseId];
         const Category: ProviderCategory =
-            Connection.category && isProviderCategory(Connection.category)
-                ? Connection.category
+            Parent.category && isProviderCategory(Parent.category)
+                ? Parent.category
                 : (Seed?.category ?? "api_key");
         const Protocol: ProviderProtocol =
-            Connection.protocol && isProviderProtocol(Connection.protocol)
-                ? Connection.protocol
+            Parent.protocol && isProviderProtocol(Parent.protocol)
+                ? Parent.protocol
                 : (Seed?.protocol ?? "openai");
 
         const ConnectedCount = Rows.filter(
@@ -115,11 +129,11 @@ async function CatalogWithSavedProviders(): Promise<ProviderDefinition[]> {
 
         Catalog.push({
             id: BaseId,
-            name: Seed?.name ?? Connection.name,
+            name: Seed?.name ?? Parent.name,
             category: Seed?.category ?? Category,
             protocol: Seed?.protocol ?? Protocol,
-            default_base_url: Seed?.base_url ?? Connection.base_url,
-            requires_api_key: Seed ? Seed.requires_api_key : Boolean(Connection.apiKey),
+            default_base_url: Seed?.base_url ?? Parent.base_url,
+            requires_api_key: Seed ? Seed.requires_api_key : Boolean(Parent.apiKey),
             requires_oauth: Seed?.requires_oauth,
             supports_custom_url: Seed ? (Seed.supports_custom_url ?? true) : true,
             roundRobin: await getRoundRobinDB(BaseId),
