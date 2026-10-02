@@ -50,30 +50,12 @@ function isProviderProtocol(Value: string): Value is ProviderProtocol {
     return ["openai", "anthropic", "gemini", "custom"].includes(Value);
 }
 
-const PROVIDER_IDS_BY_LENGTH = Object.keys(DEFAULT_PROVIDER_MAP).sort(
-    (Left, Right) => Right.length - Left.length
-);
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
+// Collapse `<parent-uuid>-<suffix>` custom-provider keys onto the parent UUID
+// (and known providers onto their base id) so one custom provider remains a
+// single catalog entry and its keys share one Active Credentials list.
+// Delegates to @srouter/constants to keep a single source of truth.
 function BaseIdOf(ProviderId: string): string {
-    for (const Id of PROVIDER_IDS_BY_LENGTH) {
-        if (
-            ProviderId === Id ||
-            ProviderId.startsWith(`${Id}_`) ||
-            ProviderId.startsWith(`${Id}-`)
-        ) {
-            return Id;
-        }
-    }
-    // Custom provider keys are stored as `<parent-uuid>-<suffix>`; collapse them
-    // onto the parent UUID so one custom provider remains a single catalog entry
-    // and its keys show up under that provider's Active Credentials list.
-    if (ProviderId.length > 37 && ProviderId[36] === "-") {
-        const Prefix = ProviderId.slice(0, 36);
-        if (UUID_RE.test(Prefix)) return Prefix.toLowerCase();
-    }
-    return ProviderId;
+    return providerBaseId(ProviderId);
 }
 
 function ProviderDefinitionFromConfig(Connection: ProviderConfig): ProviderDefinition {
