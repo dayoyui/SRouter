@@ -319,7 +319,7 @@ export async function loadSavedProvidersFromDB(): Promise<void> {
                     new AnthropicExecutor({
                         id: p.id || p.providerId,
                         name: p.name,
-                        alias: aliasFor(p),
+                        alias: aliasFor(p) ?? providerAlias(providerBaseId(p.providerId || p.id)),
                         baseUrl,
                         apiKey: p.apiKey,
                         accessToken: p.accessToken

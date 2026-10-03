@@ -70,8 +70,10 @@ test("second key joins an existing custom provider's Active Credentials", async 
 
     // Mirrors apps/web handleAddSubmit: parent id + "-" + timestamp, with the
     // parent linkage sent explicitly as provider_id.
+    const childId = `${parent.id}-${Date.now()}`;
+    createdIds.push(childId);
     await ProvidersLogic.AddProvider({
-        id: `${parent.id}-${Date.now()}`,
+        id: childId,
         provider_id: parent.id,
         name: "Active Cred Gateway Key",
         category: "custom_provider",
@@ -111,4 +113,42 @@ test("extra keys inherit the parent alias and do not rename the catalog entry", 
     const catalog = await ProvidersLogic.GetCatalog();
     const entry = catalog.categories.custom_provider.find((p) => p.id === parent.id);
     assert.equal(entry?.name, "Active Cred Gateway", "catalog name stays the provider's own");
+});
+
+test("non-UUID custom provider ids stay whole and group under their own id", async () => {
+    // Production DBs hold custom providers created with an explicit id like
+    // "grok-web". providerCatalogBaseId must not truncate such ids to "grok":
+    // deep links /providers/grok-web must keep resolving, and two providers
+    // sharing a first token ("grok-web", "grok-mini") must stay separate.
+    const parent = await ProvidersLogic.AddProvider({
+        id: "grok-web",
+        name: "Grok Web",
+        alias: "grokweb",
+        category: "custom_provider",
+        protocol: "openai",
+        base_url: "https://example.com/v1",
+        api_key: "sk-grok-web"
+    });
+    createdIds.push(parent.id);
+
+    const second = await ProvidersLogic.AddProvider({
+        id: "grok-mini",
+        name: "Grok Mini",
+        alias: "grokmini",
+        category: "custom_provider",
+        protocol: "openai",
+        base_url: "https://example.com/v1",
+        api_key: "sk-grok-mini"
+    });
+    createdIds.push(second.id);
+
+    const detail = await ProvidersLogic.GetProviderById("grok-web");
+    assert.ok(detail, "deep link /providers/grok-web must still resolve");
+    assert.equal(detail?.name, "Grok Web");
+    assert.equal(detail?.connections?.length ?? 0, 1, "only grok-web's own key groups under it");
+
+    const catalog = await ProvidersLogic.GetCatalog();
+    const ids = catalog.categories.custom_provider.map((p) => p.id);
+    assert.ok(ids.includes("grok-web"), "grok-web keeps its own catalog entry");
+    assert.ok(ids.includes("grok-mini"), "grok-mini is not merged into grok-web");
 });

@@ -3,7 +3,8 @@ import {
     isProviderCategory,
     isSeedProvider,
     providerAlias,
-    providerBaseId
+    providerBaseId,
+    providerCatalogBaseId
 } from "@srouter/constants";
 import type {
     CreateProviderZod,
@@ -53,9 +54,11 @@ function isProviderProtocol(Value: string): Value is ProviderProtocol {
 // Collapse `<parent-uuid>-<suffix>` custom-provider keys onto the parent UUID
 // (and known providers onto their base id) so one custom provider remains a
 // single catalog entry and its keys share one Active Credentials list.
-// Delegates to @srouter/constants to keep a single source of truth.
+// Uses providerCatalogBaseId (not providerBaseId): the catalog stores unknown
+// ids verbatim, so "grok-web" must stay whole — truncating it to "grok" would
+// break /providers/grok-web deep links and merge providers sharing a token.
 function BaseIdOf(ProviderId: string): string {
-    return providerBaseId(ProviderId);
+    return providerCatalogBaseId(ProviderId);
 }
 
 function ProviderDefinitionFromConfig(Connection: ProviderConfig): ProviderDefinition {
