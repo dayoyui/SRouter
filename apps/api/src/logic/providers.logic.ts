@@ -165,6 +165,25 @@ function RuntimeAliasFor(ProviderId: string): string {
     return providerAlias(providerBaseId(ProviderId));
 }
 
+/**
+ * Derive a model-prefix alias from a custom provider name (lowercase, [a-z0-9_-], max 32).
+ * Appends a numeric suffix when the alias is empty or already taken.
+ */
+async function UniqueCustomAlias(Name: string): Promise<string> {
+    const Base =
+        Name.toLowerCase()
+            .replace(/[^a-z0-9_-]/g, "")
+            .slice(0, 28) || "provider";
+    const Taken = new Set(
+        (await getAllProvidersDB()).map((P) => P.alias).filter((A): A is string => Boolean(A))
+    );
+    let Candidate = Base;
+    for (let N = 2; Taken.has(Candidate) || Candidate in DEFAULT_PROVIDER_MAP; N++) {
+        Candidate = `${Base}-${N}`;
+    }
+    return Candidate;
+}
+
 export class ProvidersLogic {
     public static async ListProviders(): Promise<ProviderDefinition[]> {
         return CatalogWithSavedProviders();
@@ -292,7 +311,10 @@ export class ProvidersLogic {
             id: Id,
             providerId: Payload.provider_id || Id,
             name: Name,
-            alias: Payload.alias,
+            alias:
+                Category === "custom_provider" && !Payload.provider_id
+                    ? await UniqueCustomAlias(Name)
+                    : Payload.alias,
             category: Category,
             protocol: Protocol,
             base_url: BaseUrl,
@@ -400,8 +422,7 @@ export class ProvidersLogic {
         return (await getCustomModelsByProviderDB(ProviderId.toLowerCase())).map((Row) => ({
             id: `${Alias}/${Row.modelId}`,
             object: "model" as const,
-            owned_by: Alias,
-            custom: true
+            owned_by: Alias
         }));
     }
 
@@ -593,11 +614,28 @@ export class ProvidersLogic {
                 ? Connection.protocol
                 : "openai";
 
-        const Result = await ProvidersLogic.VerifyConnection({
-            protocol: Protocol,
-            base_url: Connection.base_url,
-            api_key: Secret
-        });
+        // Antigravity OAuth connections point at the CloudCode IDE host, which has no
+        // /models endpoint; skip the probe and rely on the model listing below.
+        const Result =
+            providerBaseId(Connection.providerId || "") === "antigravity"
+                ? { success: true, message: "Credential Antigravity tersimpan." }
+                : await ProvidersLogic.VerifyConnection({
+                      protocol: Protocol,
+                      base_url: Connection.base_url,
+                      api_key: Secret
+                  });
+
+        const Provider = registry.getProvider(ConnectionId);
+        if (Provider) {
+            registry.clearModelsCache(ConnectionId);
+            const Models = await registry.getProviderModels(Provider, true).catch(() => []);
+            return {
+                ...Result,
+                modelsCount: Models.length,
+                connection_id: ConnectionId,
+                provider_id: Connection.providerId || Connection.id
+            };
+        }
 
         return {
             ...Result,

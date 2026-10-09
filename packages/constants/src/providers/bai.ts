@@ -2,18 +2,6 @@ import type { ProviderMetadata } from "./types.js";
 
 export const BAI_BASE_URL = "https://api.b.ai/v1";
 
-export interface BAIModelDefinition {
-    id: string;
-    name: string;
-}
-
-export const BAI_DEFAULT_MODELS: BAIModelDefinition[] = [
-    { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash (Free)" },
-    { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision Exp (Free)" },
-    { id: "mimo-v2.5", name: "MiMo V2.5 (Free)" },
-    { id: "qwen3.8-flash", name: "Qwen 3.8 Flash (Free/Low-tier)" }
-];
-
 export const BAI_PROVIDER: ProviderMetadata = {
     id: "bai",
     name: "B.AI",

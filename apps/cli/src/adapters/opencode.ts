@@ -56,29 +56,6 @@ function createOpenCodeModelConfig(id: string, name?: string): OpenCodeModelConf
     return config;
 }
 
-export const DEFAULT_SROUTER_MODELS: Array<{ id: string; name: string }> = [
-    { id: "anthropic/claude-3-7-sonnet", name: "Claude 3.7 Sonnet (Anthropic)" },
-    { id: "claude-3-7-sonnet", name: "Claude 3.7 Sonnet" },
-    { id: "anthropic/claude-3-5-sonnet", name: "Claude 3.5 Sonnet (Anthropic)" },
-    { id: "claude-3-5-sonnet", name: "Claude 3.5 Sonnet" },
-    { id: "anthropic/claude-3-5-haiku", name: "Claude 3.5 Haiku (Anthropic)" },
-    { id: "openai_codex/gpt-4o", name: "GPT-4o (OpenAI Codex)" },
-    { id: "gpt-4o", name: "GPT-4o" },
-    { id: "openai_codex/gpt-4.5-preview", name: "GPT-4.5 Preview (OpenAI Codex)" },
-    { id: "openai_codex/o3-mini", name: "o3-mini (OpenAI Codex)" },
-    { id: "openai_codex/o1", name: "o1 (OpenAI Codex)" },
-    { id: "antigravity/gemini-2.5-pro", name: "Gemini 2.5 Pro (Antigravity)" },
-    { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
-    { id: "antigravity/gemini-2.5-flash", name: "Gemini 2.5 Flash (Antigravity)" },
-    { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash" },
-    { id: "kiro/claude-3-7-sonnet", name: "Claude 3.7 Sonnet (Kiro)" },
-    { id: "qoder/qwen-2.5-coder-32b", name: "Qwen 2.5 Coder 32B (Qoder)" },
-    { id: "deepseek/deepseek-r1", name: "DeepSeek R1" },
-    { id: "deepseek/deepseek-v3", name: "DeepSeek V3" },
-    { id: "combo/flagship", name: "Combo: Flagship Cascade" },
-    { id: "combo/fast", name: "Combo: Fast Fallback" }
-];
-
 export function formatModelDisplayName(modelId: string): string {
     const knownNames: Record<string, string> = {
         "claude-3-7-sonnet": "Claude 3.7 Sonnet",
@@ -254,12 +231,7 @@ export class OpenCodeAdapter extends AbstractToolAdapter {
 
         const modelsMap: Record<string, OpenCodeModelConfig> = {};
 
-        // 1. Seed with default catalog
-        for (const m of DEFAULT_SROUTER_MODELS) {
-            modelsMap[m.id] = createOpenCodeModelConfig(m.id, m.name);
-        }
-
-        // 2. Retain existing models from user config (enriching with vision/capabilities if missing)
+        // 1. Retain existing models from user config (enriching with vision/capabilities if missing)
         for (const [key, val] of Object.entries(existingModels)) {
             if (val && typeof val === "object") {
                 const existingVal = val as OpenCodeModelConfig;
@@ -273,7 +245,7 @@ export class OpenCodeAdapter extends AbstractToolAdapter {
             }
         }
 
-        // 3. Fetch live models from SRouter Gateway
+        // 2. Fetch live models from SRouter Gateway
         try {
             const liveModels =
                 context.available_models && context.available_models.length > 0
@@ -288,10 +260,10 @@ export class OpenCodeAdapter extends AbstractToolAdapter {
                 modelsMap[cleanId] = createOpenCodeModelConfig(cleanId);
             }
         } catch {
-            // Silently fall back to default catalog
+            // Gateway unreachable; keep retained models only
         }
 
-        // 4. Ensure current user-selected model is present
+        // 3. Ensure current user-selected model is present
         const rawModel = context.model || "claude-3-7-sonnet";
         const cleanModelId = rawModel.startsWith("srouter/")
             ? rawModel.replace(/^srouter\//, "")

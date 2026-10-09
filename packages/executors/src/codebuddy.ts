@@ -1,4 +1,4 @@
-import { CODEBUDDY_BASE_URL, CODEBUDDY_MODELS } from "@srouter/constants";
+import { CODEBUDDY_BASE_URL } from "@srouter/constants";
 import { accumulateChunks } from "@srouter/translator";
 import type {
     AIProvider,
@@ -194,12 +194,9 @@ export class CodeBuddyExecutor implements AIProvider {
         return transformed;
     }
 
+    // No verified upstream model-list endpoint; models are managed via custom models.
     async listModels(): Promise<ModelObject[]> {
-        return CODEBUDDY_MODELS.map((m) => ({
-            id: `${this.modelPrefix}/${m.id}`,
-            object: "model",
-            owned_by: this.modelPrefix
-        }));
+        return [];
     }
 
     async chatCompletion(

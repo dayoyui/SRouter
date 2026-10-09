@@ -64,10 +64,9 @@ test("QoderExecutor lists models with base id prefix", async () => {
     });
 
     const models = await executor.listModels();
-    assert.ok(models.length >= 2);
+    assert.equal(models.length, 2);
     assert.ok(models.some((m) => m.id === "qoder/ultimate"));
     assert.ok(models.some((m) => m.id === "qoder/qmodel_latest"));
-    assert.ok(models.some((m) => m.id === "qoder/qwen3.8-max-preview"));
 });
 
 test("QoderExecutor streams SSE chat and unwraps statusCodeValue envelope", async () => {

@@ -7,7 +7,6 @@ import {
     CODEBUDDY_CN_USER_AGENT,
     DEFAULT_PROVIDERS,
     EXPERIENTIALLABS_BASE_URL,
-    MINIMAX_BASE_URL,
     isProviderBaseId,
     isSeedProvider,
     NEOSANTARA_BASE_URL,

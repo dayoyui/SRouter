@@ -10,7 +10,6 @@ import {
     QODER_LOGIN_VERSION,
     QODER_MACHINE_OS,
     QODER_MACHINE_TYPE,
-    QODER_MODELS,
     QODER_MODEL_ALIASES,
     QODER_RSA_PUBLIC_KEY,
     QODER_USERINFO_URL
@@ -487,16 +486,7 @@ export class QoderExecutor implements AIProvider {
         const baseId = this.id.split("_")[0]?.split("-")[0] ?? this.id;
         const modelMap = new Map<string, ModelObject>();
 
-        // 1. Add all standard known Qoder models as base catalog
-        for (const def of QODER_MODELS) {
-            modelMap.set(`${baseId}/${def.id}`, {
-                id: `${baseId}/${def.id}`,
-                object: "model",
-                owned_by: baseId
-            });
-        }
-
-        // 2. Fetch dynamic models from upstream if credentials are valid
+        // Fetch dynamic models from upstream if credentials are valid
         try {
             const creds = await this.resolveCredentials();
             if (creds.accessToken) {
@@ -531,7 +521,7 @@ export class QoderExecutor implements AIProvider {
                 }
             }
         } catch {
-            // fallback to static models
+            // upstream unavailable; DB-seeded catalog still applies
         }
 
         return Array.from(modelMap.values());

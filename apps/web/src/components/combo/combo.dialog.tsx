@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Brain, Eye, Layers, Search, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { ProviderIcon } from "@/components/providers";
-import { ANTIGRAVITY_MODELS, KNOWN_PROVIDERS } from "@srouter/constants";
+import { KNOWN_PROVIDERS } from "@srouter/constants";
 import type { ModelListResponse } from "@srouter/types";
 
 export interface ComboModelItem {
@@ -22,68 +22,6 @@ interface ComboModelPickerModalProps {
 }
 
 const EMPTY_COMBOS: string[] = [];
-
-const ANTIGRAVITY_STATIC_MODELS: ComboModelItem[] = ANTIGRAVITY_MODELS.map((m) => ({
-    id: `antigravity/${m.id}`,
-    name: m.name,
-    providerId: "antigravity",
-    providerName: "Antigravity"
-}));
-
-const FALLBACK_PROVIDER_MODELS: Record<string, ComboModelItem[]> = {
-    openai_codex: [
-        {
-            id: "openai_codex/gpt-4o",
-            name: "GPT-4o",
-            providerId: "openai_codex",
-            providerName: "OpenAI"
-        },
-        {
-            id: "openai_codex/gpt-4o-mini",
-            name: "GPT-4o Mini",
-            providerId: "openai_codex",
-            providerName: "OpenAI"
-        },
-        { id: "openai_codex/o1", name: "o1", providerId: "openai_codex", providerName: "OpenAI" },
-        {
-            id: "openai_codex/o3-mini",
-            name: "o3-mini",
-            providerId: "openai_codex",
-            providerName: "OpenAI"
-        }
-    ],
-    openai: [
-        { id: "openai/gpt-4o", name: "GPT-4o", providerId: "openai", providerName: "OpenAI" },
-        {
-            id: "openai/gpt-4o-mini",
-            name: "GPT-4o Mini",
-            providerId: "openai",
-            providerName: "OpenAI"
-        },
-        { id: "openai/o1", name: "o1", providerId: "openai", providerName: "OpenAI" },
-        { id: "openai/o3-mini", name: "o3-mini", providerId: "openai", providerName: "OpenAI" }
-    ],
-    anthropic: [
-        {
-            id: "anthropic/claude-3-7-sonnet",
-            name: "Claude 3.7 Sonnet (Thinking)",
-            providerId: "anthropic",
-            providerName: "Anthropic"
-        },
-        {
-            id: "anthropic/claude-3-5-sonnet",
-            name: "Claude 3.5 Sonnet",
-            providerId: "anthropic",
-            providerName: "Anthropic"
-        },
-        {
-            id: "anthropic/claude-3-5-haiku",
-            name: "Claude 3.5 Haiku",
-            providerId: "anthropic",
-            providerName: "Anthropic"
-        }
-    ]
-};
 
 export function getModelCapabilities(modelId: string, modelName?: string) {
     const combined = `${modelId} ${modelName || ""}`.toLowerCase();
@@ -123,8 +61,6 @@ export function formatModelDisplayName(rawId: string, rawName?: string): string 
         return rawName;
     }
     const cleanId = rawId.includes("/") ? rawId.split("/").slice(1).join("/") : rawId;
-    const known = ANTIGRAVITY_MODELS.find((m) => m.id === cleanId || m.id === rawId);
-    if (known) return known.name;
 
     if (cleanId === "claude-sonnet-4-6") return "Claude Sonnet 4.6 (Thinking)";
     if (cleanId === "claude-opus-4-6-thinking") return "Claude Opus 4.6 (Thinking)";
@@ -183,8 +119,6 @@ export default function ComboModelPickerModal({
 
         const providerModelsMap = new Map<string, ComboModelItem[]>();
 
-        providerModelsMap.set("antigravity", ANTIGRAVITY_STATIC_MODELS);
-
         const liveModels = modelsData?.data ?? [];
         for (const m of liveModels) {
             let providerId = "custom";
@@ -215,13 +149,6 @@ export default function ComboModelPickerModal({
                     providerId,
                     providerName
                 });
-            }
-        }
-
-        for (const kp of KNOWN_PROVIDERS) {
-            if (kp.id === "antigravity") continue;
-            if (!providerModelsMap.has(kp.id) && FALLBACK_PROVIDER_MODELS[kp.id]) {
-                providerModelsMap.set(kp.id, FALLBACK_PROVIDER_MODELS[kp.id]!);
             }
         }
 

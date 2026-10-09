@@ -1,8 +1,4 @@
-import {
-    ANTIGRAVITY_BASE_URL,
-    ANTIGRAVITY_IDE_BASE_URL,
-    ANTIGRAVITY_MODELS
-} from "@srouter/constants";
+import { ANTIGRAVITY_BASE_URL, ANTIGRAVITY_IDE_BASE_URL } from "@srouter/constants";
 import type {
     AIProvider,
     ChatCompletionChunk,
@@ -159,17 +155,27 @@ export class AntigravityExecutor implements AIProvider {
             return await this.openaiFallback.listModels();
         }
 
-        // 2. Return the official Antigravity exposed models
-        if (token) {
-            return ANTIGRAVITY_MODELS.map((m) => ({
-                id: m.id,
+        // 2. Native CloudCode catalog, live from upstream (empty on failure)
+        if (!token) return [];
+        try {
+            const res = await fetch(`${ANTIGRAVITY_IDE_BASE_URL}/v1internal:fetchAvailableModels`, {
+                method: "POST",
+                headers: this.getHeaders(),
+                body: JSON.stringify({}),
+                signal: AbortSignal.timeout(8000)
+            });
+            if (!res.ok) return [];
+            const data = (await res.json()) as {
+                models?: Record<string, { displayName?: string }>;
+            };
+            return Object.keys(data.models ?? {}).map((id) => ({
+                id: `${this.id}/${id}`,
                 object: "model" as const,
-                created: Math.floor(Date.now() / 1000),
-                owned_by: "antigravity"
+                owned_by: this.id
             }));
+        } catch {
+            return [];
         }
-
-        return [];
     }
 
     private getAntigravityBaseUrl(): string {

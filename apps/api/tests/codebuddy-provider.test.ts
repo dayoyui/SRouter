@@ -1,10 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import {
-    deleteProviderDB,
-    saveOAuthSessionDB,
-    upsertProviderDB
-} from "@srouter/db";
+import { deleteProviderDB, saveOAuthSessionDB, upsertProviderDB } from "@srouter/db";
 import { fetchCodeBuddyCNLiveQuota } from "@srouter/providers";
 import { CODEBUDDY_CN_BASE_URL, providerById } from "@srouter/constants";
 import type { ProviderConfig } from "@srouter/types";
@@ -44,8 +40,7 @@ test("saved CodeBuddy connections instantiate CodeBuddyExecutor and list models"
     assert.ok(provider);
     const models = await provider.listModels();
 
-    assert.ok(models.length > 0);
-    assert.ok(models.some((m) => m.id === "codebuddy/glm-5.2"));
+    assert.equal(models.length, 0);
 
     registry.unregisterProvider(id);
 });
@@ -319,7 +314,11 @@ test("CodeBuddy CN live quota splits refill and bonus packs", async () => {
         );
     };
 
-    const account = await await fetchCodeBuddyCNLiveQuota("codebuddy-cn_1", "CN Account", "cn-token");
+    const account = await await fetchCodeBuddyCNLiveQuota(
+        "codebuddy-cn_1",
+        "CN Account",
+        "cn-token"
+    );
 
     assert.equal(capturedHeaders?.get("authorization"), "Bearer cn-token");
     assert.equal(capturedHeaders?.get("x-ide-type"), "CLI");

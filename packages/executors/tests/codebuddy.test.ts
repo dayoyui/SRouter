@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import type { ChatCompletionRequest } from "@srouter/types";
-import { CODEBUDDY_MODELS } from "@srouter/constants";
 import { CodeBuddyExecutor } from "../src/codebuddy.js";
 
 const originalFetch = globalThis.fetch;
@@ -28,14 +27,9 @@ afterEach(() => {
     globalThis.fetch = originalFetch;
 });
 
-test("CodeBuddy lists all catalog models namespaced with codebuddy/", async () => {
+test("CodeBuddy listModels returns no static catalog (catalog lives in DB)", async () => {
     const models = await executor().listModels();
-    assert.equal(models.length, CODEBUDDY_MODELS.length);
-    assert.equal(models[0]?.id, `codebuddy/${CODEBUDDY_MODELS[0]?.id}`);
-    assert.equal(models[0]?.owned_by, "codebuddy");
-    assert.ok(models.some((m) => m.id === "codebuddy/glm-5.2"));
-    assert.ok(models.some((m) => m.id === "codebuddy/deepseek-v3"));
-    assert.ok(models.some((m) => m.id === "codebuddy/gpt-5.5"));
+    assert.equal(models.length, 0);
 });
 
 test("CodeBuddy transforms chat request: forces stream, wraps user message in typed blocks, and prepends system prompt", async () => {
@@ -98,7 +92,10 @@ test("CodeBuddy transforms chat request: forces stream, wraps user message in ty
 
     const messages = body?.messages as Array<{ role: string; content: unknown }>;
     assert.equal(messages.length, 2);
-    assert.deepEqual(messages[0], { role: "system", content: "You are CodeBuddy Code.\n\nOriginal system message that should be filtered" });
+    assert.deepEqual(messages[0], {
+        role: "system",
+        content: "You are CodeBuddy Code.\n\nOriginal system message that should be filtered"
+    });
     assert.deepEqual(messages[1], {
         role: "user",
         content: [{ type: "text", text: "Write some code" }]
@@ -241,7 +238,9 @@ test("CodeBuddy mirrors json_schema into last user message and drops response_fo
         };
         const stream = new ReadableStream({
             start(controller) {
-                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`));
+                controller.enqueue(
+                    new TextEncoder().encode(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`)
+                );
                 controller.close();
             }
         });
@@ -260,7 +259,10 @@ test("CodeBuddy mirrors json_schema into last user message and drops response_fo
                 { role: "system", content: "sys" },
                 { role: "user", content: [{ type: "text", text: "What is 2+2?" }] }
             ],
-            response_format: { type: "json_schema", json_schema: { name: "response", strict: true, schema } }
+            response_format: {
+                type: "json_schema",
+                json_schema: { name: "response", strict: true, schema }
+            }
         })
     );
 
@@ -288,7 +290,9 @@ test("CodeBuddy mirrors json_object directive into last string user message and 
         };
         const stream = new ReadableStream({
             start(controller) {
-                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`));
+                controller.enqueue(
+                    new TextEncoder().encode(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`)
+                );
                 controller.close();
             }
         });

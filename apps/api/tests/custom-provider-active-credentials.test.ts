@@ -21,8 +21,7 @@ afterEach(async () => {
 
 async function addCustomProvider() {
     const result = await ProvidersLogic.AddProvider({
-        name: "Active Cred Gateway",
-        alias: "activecred",
+        name: "activecred",
         category: "custom_provider",
         protocol: "openai",
         base_url: "https://example.com/v1",
@@ -93,10 +92,7 @@ test("extra keys inherit the parent alias and do not rename the catalog entry", 
     // Key rows carry no alias of their own — the executor must inherit the
     // parent's alias ("activecred") so models stay under one prefix, and the
     // catalog entry must keep the parent's name, not the newest key's.
-    const childId = `${parent.id}-${Date.now()}`;
-    createdIds.push(childId);
-    await ProvidersLogic.AddProvider({
-        id: childId,
+    const child = await ProvidersLogic.AddProvider({
         provider_id: parent.id,
         name: "Key 2",
         category: "custom_provider",
@@ -104,15 +100,16 @@ test("extra keys inherit the parent alias and do not rename the catalog entry", 
         base_url: "https://example.com/v1",
         api_key: "sk-child-key"
     });
+    createdIds.push(child.id);
     await loadSavedProvidersFromDB();
 
-    const child = registry.getAllProviders().get(childId);
-    assert.ok(child, "child key must be registered");
-    assert.equal(child?.alias, "activecred", "child must inherit the parent's alias");
+    const registered = registry.getAllProviders().get(child.id);
+    assert.ok(registered, "child key must be registered");
+    assert.equal(registered?.alias, "activecred", "child must inherit the parent's alias");
 
     const catalog = await ProvidersLogic.GetCatalog();
     const entry = catalog.categories.custom_provider.find((p) => p.id === parent.id);
-    assert.equal(entry?.name, "Active Cred Gateway", "catalog name stays the provider's own");
+    assert.equal(entry?.name, "activecred", "catalog name stays the provider's own");
 });
 
 test("non-UUID custom provider ids stay whole and group under their own id", async () => {
@@ -151,4 +148,53 @@ test("non-UUID custom provider ids stay whole and group under their own id", asy
     const ids = catalog.categories.custom_provider.map((p) => p.id);
     assert.ok(ids.includes("grok-web"), "grok-web keeps its own catalog entry");
     assert.ok(ids.includes("grok-mini"), "grok-mini is not merged into grok-web");
+});
+
+test("custom provider alias is derived from name, sanitized, and de-duplicated", async () => {
+    const first = await ProvidersLogic.AddProvider({
+        name: "My Gateway!",
+        category: "custom_provider",
+        protocol: "openai",
+        base_url: "https://example.com/v1",
+        api_key: "sk-alias-1"
+    });
+    createdIds.push(first.id);
+    await loadSavedProvidersFromDB();
+    assert.equal(
+        registry.getAllProviders().get(first.id)?.alias,
+        "mygateway",
+        "spaces and punctuation are stripped"
+    );
+
+    const second = await ProvidersLogic.AddProvider({
+        name: "My Gateway",
+        category: "custom_provider",
+        protocol: "openai",
+        base_url: "https://example.com/v1",
+        api_key: "sk-alias-2"
+    });
+    createdIds.push(second.id);
+    await loadSavedProvidersFromDB();
+    assert.equal(
+        registry.getAllProviders().get(second.id)?.alias,
+        "mygateway-2",
+        "taken alias gets a numeric suffix"
+    );
+});
+
+test("custom provider alias avoids built-in provider aliases", async () => {
+    const created = await ProvidersLogic.AddProvider({
+        name: "Anthropic",
+        category: "custom_provider",
+        protocol: "openai",
+        base_url: "https://example.com/v1",
+        api_key: "sk-alias-builtin"
+    });
+    createdIds.push(created.id);
+    await loadSavedProvidersFromDB();
+    assert.equal(
+        registry.getAllProviders().get(created.id)?.alias,
+        "anthropic-2",
+        "built-in id 'anthropic' must not be reused"
+    );
 });

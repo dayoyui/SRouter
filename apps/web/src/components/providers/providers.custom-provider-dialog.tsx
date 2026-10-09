@@ -35,7 +35,6 @@ export default function CustomProviderDialog({ open, onOpenChange }: CustomProvi
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const [name, setName] = useState("");
-    const [alias, setAlias] = useState("");
     const [baseUrl, setBaseUrl] = useState("");
     const [apiKey, setApiKey] = useState("");
     const [protocol, setProtocol] = useState<ProviderProtocol>("openai");
@@ -46,7 +45,6 @@ export default function CustomProviderDialog({ open, onOpenChange }: CustomProvi
     useEffect(() => {
         if (open) {
             setName("");
-            setAlias("");
             setBaseUrl("");
             setApiKey("");
             setProtocol("openai");
@@ -120,11 +118,6 @@ export default function CustomProviderDialog({ open, onOpenChange }: CustomProvi
             setFormError("Provider name is required");
             return;
         }
-        const trimmedAlias = alias.trim().toLowerCase();
-        if (!/^[a-z0-9_-]{1,32}$/.test(trimmedAlias)) {
-            setFormError("Alias must be 1-32 chars: lowercase letters, numbers, - or _");
-            return;
-        }
         if (!baseUrl.trim()) {
             setFormError("Base URL is required");
             return;
@@ -141,7 +134,6 @@ export default function CustomProviderDialog({ open, onOpenChange }: CustomProvi
         setFormError("");
         saveMutation.mutate({
             name: trimmedName,
-            alias: trimmedAlias,
             category: "custom_provider",
             protocol,
             base_url: baseUrl.trim(),
@@ -228,31 +220,11 @@ export default function CustomProviderDialog({ open, onOpenChange }: CustomProvi
                                     className="w-full rounded-2xl border-0 bg-field px-4 py-2.5 text-xs text-ink placeholder:text-text-faint focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none shadow-none"
                                 />
                             </div>
-
-                            <div className="flex flex-col gap-1.5">
-                                <label
-                                    htmlFor="cp-alias"
-                                    className="font-semibold text-ink block text-xs"
-                                >
-                                    Alias (model prefix) *
-                                </label>
-                                <input
-                                    id="cp-alias"
-                                    type="text"
-                                    placeholder="e.g. mygateway"
-                                    value={alias}
-                                    onChange={(e) => {
-                                        setAlias(e.target.value);
-                                        if (formError) setFormError("");
-                                    }}
-                                    className="w-full rounded-2xl border-0 bg-field px-4 py-2.5 text-xs text-ink placeholder:text-text-faint focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none shadow-none font-mono"
-                                />
-                            </div>
                         </div>
                         <p className="text-xs text-text-muted">
-                            Model prefix example:{" "}
-                            <code className="text-ink font-mono">mygateway/gpt-4</code>. Use
-                            lowercase letters, numbers, hyphens, or underscores.
+                            Model prefix is derived from the name, e.g.{" "}
+                            <code className="text-ink font-mono">My Gateway</code> →{" "}
+                            <code className="text-ink font-mono">mygateway/gpt-4</code>.
                         </p>
                     </section>
 
